@@ -171,7 +171,7 @@ func MakeApi() {
 
 		a := ApiHeader{
 			Tags : []string{"last_update", "D30_API", "supports_historical"},
-			Databasename : Conf["cass_keyspace"].(string),
+			Databasename : ConfFile.Keyspace,
 			Table : tab.Table_name,
 			ApiName : strcase.ToCamel(tab.Table_name),
 			UpdateKeys: GetUpdateKeys(tab),
