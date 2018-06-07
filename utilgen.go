@@ -8,6 +8,8 @@ import(
 	"encoding/json"
 	"bytes"
 	"strings"
+	"flag"
+	"github.com/spf13/viper"
 )
 /*
 func main(){
@@ -21,6 +23,19 @@ func main(){
 	}
 }
 */
+
+type FileConfiguration struct{
+	Host []string // Required
+	Username string // Required
+	Password string // Required
+	Keyspace string
+
+	// Optional
+	NumConnectionsPerHost int
+	ConnectionTimeout int
+	SocketKeepAlive int
+	NumberOfQueryRetries int
+}
 
 type ApiHeader struct {
 
@@ -46,18 +61,152 @@ type Field struct {
 	IsGetField string  `json:"is_get_field"`
 }
 
+
+var Conf map[string]interface{}
+
+var ConfFile FileConfiguration
+
+func readFlags(){
+	var configFilePath,pwdCass, hostCass, userCass,ksCass,appJsonOut,avScOut,cassQueryOut,hiveScOut string
+	flag.StringVar(&configFilePath,"config_file","","Give fully qualified path of configuration file")
+	flag.StringVar(&hostCass,"host","","Give the hostname with port for cassandra")
+	flag.StringVar(&userCass,"username","","Give the cassandra username")
+	flag.StringVar(&pwdCass,"password","","Give the cassandra password")
+	flag.StringVar(&ksCass,"keyspace","","Define the Cassandra Keyspace to use")
+	flag.StringVar(&appJsonOut,"app_json_out","","Give the output file for storing app json")
+	flag.StringVar(&avScOut,"av_sc_out","","Give the output file for storing Avro Schema")
+	flag.StringVar(&cassQueryOut,"cass_query_out","","Give the output file for storing Cassandra Query")
+	flag.StringVar(&hiveScOut,"hive_sc_out","","Give the output file for storing Hive Schema")
+
+	setConfValue(configFilePath,"config_file")
+	setConfValue(hostCass,"cass_host")
+	setConfValue(userCass,"cass_user")
+	setConfValue(pwdCass,"cass_passwd")
+	setConfValue(ksCass,"cass_keyspace")
+	setConfValue(appJsonOut,"app_json_out")
+	setConfValue(avScOut,"av_sc_out")
+	setConfValue(cassQueryOut,"cass_query_out")
+	setConfValue(hiveScOut,"hive_sc_out")
+
+}
+
+func setConfValue(value string, key string) {
+	if value != ""{
+		Conf[key] = value
+	}
+}
+
+func loadConfiguration(){
+
+	if Conf["cass_host"] == nil || Conf["cass_user"] == nil || Conf["cass_passwd"] == nil || Conf["cass_keyspace"] == nil{
+		if Conf["config_file"] == nil{
+			Conf["config_file"] = "/etc/stream/util.toml"
+		}
+
+		viper.SetConfigFile(Conf["config_file"].(string))
+		viper.SetConfigType("toml")
+		verr := viper.ReadInConfig()
+
+		e2 := viper.Unmarshal(&ConfFile)
+
+		if e2 != nil {
+			fmt.Print("Error marshaling config ", e2)
+		}
+
+		if verr != nil {
+			fmt.Println("There was an error reading in configuration. Error : ", verr.Error())
+		}
+
+		if ConfFile.Host != nil && Conf["cass_host"] == nil{
+			Conf["cass_host"] = ConfFile.Host
+		}
+
+		if ConfFile.Host != nil && Conf["cass_user"] == nil{
+			Conf["cass_user"] = ConfFile.Username
+		}
+
+		if ConfFile.Host != nil && Conf["cass_passwd"] == nil{
+			Conf["cass_passwd"] = ConfFile.Password
+		}
+
+		if ConfFile.Host != nil && Conf["cass_keyspace"] == nil{
+			Conf["cass_keyspace"] = ConfFile.Keyspace
+		}
+
+	}
+}
+
+
+func checkConfiguration(){
+	if Conf["cass_host"] == nil{
+		fmt.Println("No hosts defined, Please check your configuration file or pass it as -host")
+		os.Exit(1)
+	}
+
+	if Conf["cass_user"] == nil{
+		fmt.Println("No user defined, Please check your configuration file or pass it as -username")
+		os.Exit(1)
+	}
+
+	if Conf["cass_passwd"] == nil{
+		fmt.Println("No password defined, Please check your configuration file or pass it as -password")
+		os.Exit(1)
+	}
+
+	if Conf["cass_keyspace"] == nil{
+		fmt.Println("No keyspace defined, Please check your configuration file or pass it as -keyspace")
+		os.Exit(1)
+	}
+
+	if Conf["app_json_out"] == nil{
+		fmt.Println("No application json output file defined, Please pass it as -app_json_out")
+		os.Exit(1)
+	}
+
+	if Conf["av_sc_out"] == nil{
+		fmt.Println("No avro schema output file defined, Please pass it as -av_sc_out")
+		os.Exit(1)
+	}
+
+	if Conf["cass_query_out"] == nil{
+		fmt.Println("No Cassandra Query output file defined, Please pass it as -cass_query_out")
+		os.Exit(1)
+	}
+
+	if Conf["hive_sc_out"] == nil{
+		fmt.Println("No Hive Schema Output file defined, Please pass it as -hive_sc_out")
+	}
+}
+
+
 func main()  {
 
+	Conf = make(map[string]interface{})
+
+	readFlags()
+
+	loadConfiguration()
+
+	checkConfiguration()
+
+	fmt.Println(Conf["cass_keyspace"].(string)+"ks")
+	fmt.Println(Conf["cass_passwd"].(string)+"pass")
+	fmt.Println(Conf["cass_user"].(string)+"user")
+	fmt.Println(Conf["cass_host"].(string)+"host")
+
+
 	err := dbm.StartSchemaMapper(dbm.CassandraConfig{
-		Keyspace: "last_update_test",
-		Username: "admin_alltrade",
-		Password: "admin_alltrade",
-		Host: []string{"10.5.0.8:9042"}})
+		Keyspace: Conf["cass_keyspace"].(string),
+		Username: Conf["cass_user"].(string),
+		Password: Conf["cass_passwd"].(string),
+		Host: []string{Conf["cass_host"].(string)}})
 
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+
 
 	MakeApi()
 
@@ -92,7 +241,7 @@ func MakeApi() {
 
 		a := ApiHeader{
 			Tags : []string{"last_update", "D30_API", "supports_historical"},
-			Databasename : "bss_transformation",
+			Databasename : Conf["cass_keyspace"].(string),
 			Table : tab.Table_name,
 			ApiName : strcase.ToCamel(tab.Table_name),
 			UpdateKeys: GetUpdateKeys(tab),
