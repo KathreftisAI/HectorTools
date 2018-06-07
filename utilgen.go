@@ -1,4 +1,4 @@
-package streamUtilGenerator
+package main
 
 import(
 	dbm "github.com/dminGod/D30-HectorDA/cass_strategy/cass_schema_mapper"

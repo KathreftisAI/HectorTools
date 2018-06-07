@@ -1,4 +1,4 @@
-package streamUtilGenerator
+package main
 
 import (
 	"flag"
