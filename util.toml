@@ -1,5 +1,5 @@
-[CassNConf]
-	Host = ["10.5.0.8:9042"]
+[Fc]
+	Host = [ "10.5.0.8:9042" ]
 	Username = "cassandra"
 	Password = "cassandra"
 	Keyspace = "last_update_test"
