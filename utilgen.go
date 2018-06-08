@@ -25,11 +25,31 @@ type FileConfiguration struct{
 	AvroSchemaPath string
 	CassQueryPath string
 	HiveSchemaPath string
+	HiveDBName string
 	// Optional
 	NumConnectionsPerHost int
 	ConnectionTimeout int
 	SocketKeepAlive int
 	NumberOfQueryRetries int
+}
+
+type AvroJson struct {
+	TypeVal string `json:"type"`
+	NameVal string `json:"name"`
+	NSVal   string `json:"namespace"`
+	FieldsVal []AvroRecord `json:"fields"`
+}
+
+
+type AvroRecord struct {
+	AFName string `json:"name,omitempty"`
+	AFType []interface{} `json:"type,omitempty"`
+	AFDefault string `json:"default,omitempty"`
+}
+
+type AvroArray struct{
+	AFType string `json:"type,omitempty"`
+	AFItems []string `json:"items,omitempty"`
 }
 
 type ApiHeader struct {
@@ -62,9 +82,9 @@ var ConfFile FileConfiguration
 
 func loadConfiguration(){
 
-		v := viper.New()
-		v.SetConfigName("util")
-		v.AddConfigPath("/etc/stream")
+	v := viper.New()
+	v.SetConfigName("util")
+	v.AddConfigPath("/etc/stream")
 
 	v.AutomaticEnv()
 	if err := v.ReadInConfig(); err != nil {
@@ -157,6 +177,146 @@ func main()  {
 	if err != nil{
 		fmt.Println("Error writing Cassandra Query file",err.Error())
 	}
+
+	makeAvroSchema()
+
+	err = writeAvroSchema()
+
+	if err != nil{
+		fmt.Println("Error Writing Avro Schema file", err.Error())
+	}
+
+	makeHiveSchema()
+
+	err = writeHiveSchema()
+
+	if err != nil{
+		fmt.Println("Error writing the hive schema file ",err.Error())
+	}
+}
+
+
+var HiveSchemas map[string]string
+
+func makeHiveSchema(){
+	HiveSchemas = make(map[string]string)
+	for key, value := range dbm.TableArr {
+		var tempString string
+		tempString = "use "+ConfFile.HiveDBName+"; "
+		//fmt.Println(tempString)
+		tempString = tempString + " CREATE EXTERNAL TABLE `hive_"+key+"`( "
+		for _,v1 := range value.Columns{
+			var tempDT string
+			if v1.Datatype.String() == "ListText"{
+				tempDT = "array<string>"
+			} else if v1.Datatype.String() == "Timestamp" || v1.Datatype.String() == "TimeUUID" || v1.Datatype.String() == "Int" || v1.Datatype.String() == "Varint" || v1.Datatype.String() == "Bigint" || v1.Datatype.String() == "Decimal" || v1.Datatype.String() == "Double" || v1.Datatype.String() == "Float" {
+				tempDT = "bigint"
+			} else {
+				tempDT = "string"
+			}
+			tempString = tempString + "`"+v1.Column_name+"` "+tempDT+" COMMENT '',"
+		}
+
+		runeVal := []rune(tempString)
+
+		tempString = string(runeVal[:len(runeVal)-1])
+		tempString = tempString + ") STORED AS AVRO LOCATION '/topics/hive"+key+"';"
+		HiveSchemas[key] = tempString
+	}
+}
+
+
+func writeHiveSchema() (err error){
+	for key, value := range HiveSchemas {
+		f,err := os.OpenFile(ConfFile.HiveSchemaPath+"/"+time.Now().Format("20060102150405")+"-"+key+".hql",os.O_CREATE|os.O_RDWR,0664)
+
+		if err != nil{
+			return err
+		}
+
+		_, err = f.Write([]byte(value))
+
+		if err != nil{
+			return err
+		}
+
+	}
+
+	return
+}
+
+
+
+var AvroSchemas map[string]string
+
+func makeAvroSchema(){
+	AvroSchemas = make(map[string]string)
+
+	//TODO: Read data from dbm and map it to AVROJSON struct
+
+	for key, value := range dbm.TableArr {
+		var AvroTemp AvroJson
+
+
+		AvroTemp.TypeVal = "record"
+		AvroTemp.NameVal = "%v"
+		AvroTemp.NSVal = ConfFile.HiveDBName
+
+
+		//AvroTemp.FieldsVal = make([]AvroRecord,len(value.Columns))
+
+
+		for _, value1 := range value.Columns {
+			var FieldTemp AvroRecord
+
+			FieldTemp.AFName = value1.Column_name
+			FieldTemp.AFType = append(FieldTemp.AFType,"null")
+			if value1.Datatype.String() == "ListText"{
+				var tempArr AvroArray
+				tempArr.AFType = "array"
+				tempArr.AFItems = make([]string,2)
+				tempArr.AFItems[0] = "null"
+				tempArr.AFItems[1] = "string"
+				FieldTemp.AFType = append(FieldTemp.AFType, tempArr )
+			} else if value1.Datatype.String() == "Timestamp" || value1.Datatype.String() == "TimeUUID"{
+				FieldTemp.AFType = append(FieldTemp.AFType,"long")
+			} else if value1.Datatype.String() == "Int" || value1.Datatype.String() == "Varint" || value1.Datatype.String() == "Bigint" || value1.Datatype.String() == "Decimal" || value1.Datatype.String() == "Double" || value1.Datatype.String() == "Float"{
+				FieldTemp.AFType = append(FieldTemp.AFType,"long")
+			} else {
+				FieldTemp.AFType = append(FieldTemp.AFType,"text")
+			}
+
+			AvroTemp.FieldsVal = append(AvroTemp.FieldsVal, FieldTemp)
+
+		}
+
+		bytJs, err := json.Marshal(AvroTemp)
+		if err != nil{
+			return
+		}
+
+		AvroSchemas[key] = string(bytJs)
+	}
+}
+
+
+func writeAvroSchema() (err error){
+	for key, value := range AvroSchemas {
+		f,err := os.OpenFile(ConfFile.AvroSchemaPath+"/"+time.Now().Format("20060102150405")+"-"+key+".avsc",os.O_CREATE|os.O_RDWR,0664)
+
+		if err != nil{
+			return err
+		}
+
+		_, err = f.Write([]byte(value))
+
+		if err != nil{
+			return err
+		}
+
+	}
+
+	return
 }
 
 
@@ -186,6 +346,8 @@ var CassQueries map[string]string
 func makeCassQuery() {
 	CassQueries = make(map[string]string)
 	for key, value := range dbm.TableArr {
+
+
 		var tempData string
 		tempData = "SELECT "
 		for _, value1 := range value.Columns {
@@ -199,7 +361,6 @@ func makeCassQuery() {
 		runeVal := []rune(tempData)
 
 		tempData = string(runeVal[:len(runeVal)-1])
-		fmt.Println(tempData)
 		tempData = tempData+" FROM "+value.Keyspace_name+"."+key+" WHERE "+value.PartitionColumns[0].Column_name+" IN (?)"
 		CassQueries[key] = tempData
 	}
