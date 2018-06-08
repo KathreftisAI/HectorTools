@@ -40,7 +40,6 @@ type AvroJson struct {
 	FieldsVal []AvroRecord `json:"fields"`
 }
 
-
 type AvroRecord struct {
 	AFName string `json:"name,omitempty"`
 	AFType []interface{} `json:"type,omitempty"`
@@ -76,9 +75,11 @@ type Field struct {
 	IsGetField string  `json:"is_get_field"`
 }
 
-
 var ConfFileHolder Config
 var ConfFile FileConfiguration
+var HiveSchemas map[string]string
+var AvroSchemas map[string]string
+var Apis []ApiHeader
 
 func loadConfiguration(){
 
@@ -99,7 +100,6 @@ func loadConfiguration(){
 
 	ConfFile = ConfFileHolder.Fc
 }
-
 
 func checkConfiguration(){
 	if ConfFile.Host == nil{
@@ -141,7 +141,6 @@ func checkConfiguration(){
 		fmt.Sprintf("No Hive Schema Output file defined, Please check your configuration\n")
 	}
 }
-
 
 func main()  {
 
@@ -195,9 +194,6 @@ func main()  {
 	}
 }
 
-
-var HiveSchemas map[string]string
-
 func makeHiveSchema(){
 	HiveSchemas = make(map[string]string)
 	for key, value := range dbm.TableArr {
@@ -225,7 +221,6 @@ func makeHiveSchema(){
 	}
 }
 
-
 func writeHiveSchema() (err error){
 	for key, value := range HiveSchemas {
 		f,err := os.OpenFile(ConfFile.HiveSchemaPath+"/"+time.Now().Format("20060102150405")+"-"+key+".hql",os.O_CREATE|os.O_RDWR,0664)
@@ -244,10 +239,6 @@ func writeHiveSchema() (err error){
 
 	return
 }
-
-
-
-var AvroSchemas map[string]string
 
 func makeAvroSchema(){
 	AvroSchemas = make(map[string]string)
@@ -299,7 +290,6 @@ func makeAvroSchema(){
 	}
 }
 
-
 func writeAvroSchema() (err error){
 	for key, value := range AvroSchemas {
 		f,err := os.OpenFile(ConfFile.AvroSchemaPath+"/"+time.Now().Format("20060102150405")+"-"+key+".avsc",os.O_CREATE|os.O_RDWR,0664)
@@ -318,7 +308,6 @@ func writeAvroSchema() (err error){
 
 	return
 }
-
 
 func writeCassQuery() (err error){
 
@@ -339,7 +328,6 @@ func writeCassQuery() (err error){
 
 	return
 }
-
 
 var CassQueries map[string]string
 
@@ -365,7 +353,6 @@ func makeCassQuery() {
 		CassQueries[key] = tempData
 	}
 }
-
 
 func writeAPIJson() (err error){
 
@@ -398,8 +385,6 @@ func writeAPIJson() (err error){
 
 	return
 }
-
-var Apis []ApiHeader
 
 func MakeApi() {
 
