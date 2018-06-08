@@ -1,0 +1,26 @@
+
+--------- Backlog:
+
+Housekeeping:
+    - Rename the code to HectorTools and upload to new repo
+    - Move each tool into its file
+    - To keep build simpler move it into a directory of its own
+    - Add templates and fmt.Sprintf
+    - Flags will have its own separate file and help function
+
+
+
+Low priority -- Not immidiate:
+    - Include older stuff that is already created to this ---
+        - API search utility
+        - Integrate hector API vs JSON vs DB Tests
+
+    - Tests for the important functions (relevant ones)
+
+    - Add a simple web interface :
+        - Show current server JSON files available (use as base code the already implemented API search code -- it has web server)
+        - Show config.json for various instances
+
+    Health Checks interface(On the same UI):
+        - Status of target tools (cassandra, hector, hive(?), hadoop(?))
+        - What can you take from ZooGuard(?)

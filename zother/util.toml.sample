@@ -1,0 +1,9 @@
+[Fc]
+	Host = [ "10.5.0.8:9042" ]
+	Username = "cassandra"
+	Password = "cassandra"
+	Keyspace = "last_update_test"
+	AppJSONPath = "/opt/outfiles/app_jsons"
+    AvroSchemaPath = "/opt/outfiles/av_schemas"
+    CassQueryPath = "/opt/outfiles/cass_queries"
+    HiveSchemaPath = "/opt/outfiles/hive_schemas"
