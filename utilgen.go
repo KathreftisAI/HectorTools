@@ -9,7 +9,12 @@ import(
 	"bytes"
 	"strings"
 	"github.com/spf13/viper"
+	"time"
 )
+
+type Config struct{
+	Fc FileConfiguration
+}
 
 type FileConfiguration struct{
 	Host []string // Required
@@ -52,27 +57,27 @@ type Field struct {
 }
 
 
-
+var ConfFileHolder Config
 var ConfFile FileConfiguration
-
 
 func loadConfiguration(){
 
+		v := viper.New()
+		v.SetConfigName("util")
+		v.AddConfigPath("/etc/stream")
 
-		viper.SetConfigFile("/etc/stream/util.toml")
-		viper.SetConfigType("toml")
-		verr := viper.ReadInConfig()
+	v.AutomaticEnv()
+	if err := v.ReadInConfig(); err != nil {
+		fmt.Printf("couldn't load config: %s", err)
+		os.Exit(1)
+	}
 
-		e2 := viper.Unmarshal(&ConfFile)
+	if err := v.Unmarshal(&ConfFileHolder); err != nil {
+		fmt.Printf("couldn't read config: %s", err)
+	}
 
-		if e2 != nil {
-			fmt.Print("Error marshaling config ", e2)
-		}
 
-		if verr != nil {
-			fmt.Println("There was an error reading in configuration. Error : ", verr.Error())
-		}
-
+	ConfFile = ConfFileHolder.Fc
 }
 
 
@@ -139,6 +144,16 @@ func main()  {
 
 
 	MakeApi()
+	err = writeAPIJson()
+	if err != nil{
+		fmt.Println("Error writing App JSON file ",err.Error())
+	}
+
+}
+
+
+func writeAPIJson() (err error){
+
 
 	va, err := json.Marshal(Apis)
 	if err != nil {
@@ -149,10 +164,24 @@ func main()  {
 
 	err = json.Indent(&k, va, "", "  ")
 	if err != nil {
-		fmt.Println(err)
+		return
 	}
 
-	fmt.Println(string(k.Bytes()))
+	buff := k
+
+	f,err := os.OpenFile(ConfFile.AppJSONPath+"/"+time.Now().Format("20060102150405")+"-application.json",os.O_CREATE|os.O_RDWR,0664)
+
+	if err != nil{
+		return
+	}
+
+	_, err = f.Write(buff.Bytes())
+
+	if err != nil{
+		return
+	}
+
+	return
 }
 
 var Apis []ApiHeader
