@@ -32,7 +32,11 @@ func main()  {
 		os.Exit(1)
 	}
 
+	AvroSchema.AvroInit(config.ConfFile.Keyspace,config.ConfFile.Username,config.ConfFile.Password,config.ConfFile.Host,config.ConfFile.HiveDBName,config.ConfFile.AvroSchemaPath)
 
+	HiveSchema.HiveInit(config.ConfFile.Keyspace,config.ConfFile.Username,config.ConfFile.Password,config.ConfFile.Host,config.ConfFile.HiveDBName,config.ConfFile.HiveSchemaPath)
+
+	CassandraQuery.CassQueryInit(config.ConfFile.Keyspace,config.ConfFile.Username,config.ConfFile.Password,config.ConfFile.Host,config.ConfFile.CassQueryPath)
 
 	HectorAppJSON.MakeApi()
 

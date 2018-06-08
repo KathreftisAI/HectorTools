@@ -27,6 +27,28 @@ type Field struct {
 }
 
 
+type AppJsonConfig struct{
+	Keyspace string
+	Username string
+	Password string
+	Host []string
+	AppJsonPath string
+}
+
+var CQC AppJsonConfig
+
+
+func AppJsonInit(ks string, user string, pwd string, hosts []string, ajpath string){
+	CQC.Keyspace = ks
+	CQC.Username = user
+	CQC.Password = pwd
+	CQC.Host = hosts
+	CQC.AppJsonPath = ajpath
+
+	dbm.StartSchemaMapper(dbm.CassandraConfig{Username:CQC.Username,Password:CQC.Password,Host:CQC.Host,Keyspace:CQC.Keyspace})
+}
+
+
 
 var Apis []ApiHeader
 
@@ -60,7 +82,7 @@ func WriteAPIJson() (err error){
 
 	buff := k
 
-	f,err := os.OpenFile(config.ConfFile.AppJSONPath+"/"+time.Now().Format("20060102150405")+"-application.json",os.O_CREATE|os.O_RDWR,0664)
+	f,err := os.OpenFile(CQC.AppJsonPath+"/"+time.Now().Format("20060102150405")+"-application.json",os.O_CREATE|os.O_RDWR,0664)
 
 	if err != nil{
 		return
@@ -89,7 +111,7 @@ func MakeApi() {
 
 		a := ApiHeader{
 			Tags : []string{"last_update", "D30_API", "supports_historical"},
-			Databasename : config.ConfFile.Keyspace,
+			Databasename : CQC.Keyspace,
 			Table : tab.Table_name,
 			ApiName : strcase.ToCamel(tab.Table_name),
 			UpdateKeys: GetUpdateKeys(tab),

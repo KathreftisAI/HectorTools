@@ -4,13 +4,37 @@ import (
 	"os"
 	"time"
 	dbm "github.com/dminGod/D30-HectorDA/cass_strategy/cass_schema_mapper"
-	"github.com/Unotechsoftware/HectorTools/config"
 )
+
+
+
+type CassQueryConfig struct{
+	Keyspace string
+	Username string
+	Password string
+	Host []string
+	CassQueryPath string
+}
+
+var CQC CassQueryConfig
+
+
+func CassQueryInit(ks string, user string, pwd string, hosts []string, hcpath string){
+	CQC.Keyspace = ks
+	CQC.Username = user
+	CQC.Password = pwd
+	CQC.Host = hosts
+	CQC.CassQueryPath = hcpath
+
+	dbm.StartSchemaMapper(dbm.CassandraConfig{Username:CQC.Username,Password:CQC.Password,Host:CQC.Host,Keyspace:CQC.Keyspace})
+}
+
+
 
 func WriteCassQuery() (err error){
 
 	for key, value := range CassQueries {
-		f,err := os.OpenFile(config.ConfFile.CassQueryPath+"/"+time.Now().Format("20060102150405")+"-"+key+".cql",os.O_CREATE|os.O_RDWR,0664)
+		f,err := os.OpenFile(CQC.CassQueryPath+"/"+time.Now().Format("20060102150405")+"-"+key+".cql",os.O_CREATE|os.O_RDWR,0664)
 
 		if err != nil{
 			return err

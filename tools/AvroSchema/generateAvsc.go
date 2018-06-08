@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 	dbm "github.com/dminGod/D30-HectorDA/cass_strategy/cass_schema_mapper"
-	"github.com/Unotechsoftware/HectorTools/config"
 )
 
 type AvroArray struct{
@@ -27,6 +26,31 @@ type AvroRecord struct {
 	AFDefault string `json:"default,omitempty"`
 }
 
+type AvroConfig struct{
+	Keyspace string
+	Username string
+	Password string
+	Host []string
+	HiveDBName string
+	AvroSchemaPath string
+}
+
+var AC AvroConfig
+
+
+
+func AvroInit(ks string, user string, pwd string, hosts []string, hivedb string,hcpath string){
+	AC.Keyspace = ks
+	AC.Username = user
+	AC.Password = pwd
+	AC.Host = hosts
+	AC.HiveDBName = hivedb
+	AC.AvroSchemaPath = hcpath
+
+	dbm.StartSchemaMapper(dbm.CassandraConfig{Username:AC.Username,Password:AC.Password,Host:AC.Host,Keyspace:AC.Keyspace})
+}
+
+
 
 var AvroSchemas map[string]string
 
@@ -41,7 +65,7 @@ func MakeAvroSchema(){
 
 		AvroTemp.TypeVal = "record"
 		AvroTemp.NameVal = "%v"
-		AvroTemp.NSVal = config.ConfFile.HiveDBName
+		AvroTemp.NSVal = AC.HiveDBName
 
 
 		//AvroTemp.FieldsVal = make([]AvroRecord,len(value.Columns))
@@ -82,7 +106,7 @@ func MakeAvroSchema(){
 
 func WriteAvroSchema() (err error){
 	for key, value := range AvroSchemas {
-		f,err := os.OpenFile(config.ConfFile.AvroSchemaPath+"/"+time.Now().Format("20060102150405")+"-"+key+".avsc",os.O_CREATE|os.O_RDWR,0664)
+		f,err := os.OpenFile(AC.AvroSchemaPath+"/"+time.Now().Format("20060102150405")+"-"+key+".avsc",os.O_CREATE|os.O_RDWR,0664)
 
 		if err != nil{
 			return err
