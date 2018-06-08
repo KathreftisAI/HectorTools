@@ -88,12 +88,12 @@ func loadConfiguration(){
 
 	v.AutomaticEnv()
 	if err := v.ReadInConfig(); err != nil {
-		fmt.Printf("couldn't load config: %s", err)
+		fmt.Sprintf("couldn't load config: %s \n", err)
 		os.Exit(1)
 	}
 
 	if err := v.Unmarshal(&ConfFileHolder); err != nil {
-		fmt.Printf("couldn't read config: %s", err)
+		fmt.Sprintf("couldn't read config: %s \n", err)
 	}
 
 
@@ -103,42 +103,42 @@ func loadConfiguration(){
 
 func checkConfiguration(){
 	if ConfFile.Host == nil{
-		fmt.Println("No hosts defined, Please check your configuration file or pass it as -host")
+		fmt.Sprintf("No hosts defined, Please check your configuration file \n")
 		os.Exit(1)
 	}
 
 	if ConfFile.Username == ""{
-		fmt.Println("No user defined, Please check your configuration file or pass it as -username")
+		fmt.Sprintf("No user defined, Please check your configuration file \n")
 		os.Exit(1)
 	}
 
 	if ConfFile.Password == ""{
-		fmt.Println("No password defined, Please check your configuration file or pass it as -password")
+		fmt.Sprintf("No password defined, Please check your configuration file \n")
 		os.Exit(1)
 	}
 
 	if ConfFile.Keyspace == ""{
-		fmt.Println("No keyspace defined, Please check your configuration file")
+		fmt.Sprintf("No keyspace defined, Please check your configuration file \n")
 		os.Exit(1)
 	}
 
 	if ConfFile.AppJSONPath == ""{
-		fmt.Println("No Application Json Output file path defined, Please check your configuration file")
+		fmt.Sprintf("No Application Json Output file path defined, Please check your configuration file\n")
 		os.Exit(1)
 	}
 
 	if ConfFile.AvroSchemaPath == ""{
-		fmt.Println("No Avro Schema Output file path defined, Please check your configuration file")
+		fmt.Sprintf("No Avro Schema Output file path defined, Please check your configuration file\n")
 		os.Exit(1)
 	}
 
 	if ConfFile.CassQueryPath == ""{
-		fmt.Println("No Cassandra Query Output file path defined, Please check your configuration file")
+		fmt.Sprintf("No Cassandra Query Output file path defined, Please check your configuration file\n")
 		os.Exit(1)
 	}
 
 	if ConfFile.HiveSchemaPath == ""{
-		fmt.Println("No Hive Schema Output file defined, Please check your configuration")
+		fmt.Sprintf("No Hive Schema Output file defined, Please check your configuration\n")
 	}
 }
 
@@ -157,7 +157,7 @@ func main()  {
 		Host: ConfFile.Host})
 
 	if err != nil {
-		fmt.Println(err)
+		fmt.Sprintf("Error occured in creating DB connection to Cassandra: %v\n",err)
 		os.Exit(1)
 	}
 
@@ -167,7 +167,7 @@ func main()  {
 
 	err = writeAPIJson()
 	if err != nil{
-		fmt.Println("Error writing App JSON file ",err.Error())
+		fmt.Sprintf("Error writing App JSON file: %v \n",err.Error())
 	}
 
 	makeCassQuery()
@@ -175,7 +175,7 @@ func main()  {
 	err = writeCassQuery()
 
 	if err != nil{
-		fmt.Println("Error writing Cassandra Query file",err.Error())
+		fmt.Sprintf("Error writing Cassandra Query file: %v \n",err.Error())
 	}
 
 	makeAvroSchema()
@@ -183,7 +183,7 @@ func main()  {
 	err = writeAvroSchema()
 
 	if err != nil{
-		fmt.Println("Error Writing Avro Schema file", err.Error())
+		fmt.Sprintf("Error Writing Avro Schema file: %v \n", err.Error())
 	}
 
 	makeHiveSchema()
@@ -191,7 +191,7 @@ func main()  {
 	err = writeHiveSchema()
 
 	if err != nil{
-		fmt.Println("Error writing the hive schema file ",err.Error())
+		fmt.Sprintf("Error writing the hive schema file: %v \n",err.Error())
 	}
 }
 
@@ -372,7 +372,7 @@ func writeAPIJson() (err error){
 
 	va, err := json.Marshal(Apis)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Sprintf("Error Occured in Marshalling the API data for json: %v \n ",err)
 	}
 
 	k := bytes.Buffer{}
