@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/viper"
 	"fmt"
 	"os"
+	"github.com/mitchellh/mapstructure"
 )
 
 type Config struct{
@@ -50,43 +51,34 @@ func LoadConfiguration(){
 	ConfFile = ConfFileHolder.Fc
 }
 
-func CheckConfiguration(){
-	if ConfFile.Host == nil{
-		fmt.Sprintf("No hosts defined, Please check your configuration file \n")
-		os.Exit(1)
+func CheckConfiguration() (err error){
+
+	k := make(map[string]interface{})
+
+	err = mapstructure.Decode(ConfFile, &k)
+	if err != nil {
+		return
 	}
 
-	if ConfFile.Username == ""{
-		fmt.Sprintf("No user defined, Please check your configuration file \n")
-		os.Exit(1)
+	for key, value := range k {
+
+		ok := true
+
+		switch key {
+		case "Host":
+			if value == "[]" {
+				ok = false
+			}
+		case "Username", "Password", "Keyspace", "AppJSONPath", "AvroSchemaPath", "CassQueryPath", "HiveSchemaPath":
+			if len(value.(string)) == 0 {
+				ok = false
+			}
+		}
+		if ok == false {
+			err = fmt.Errorf("Field %v is mandatory in the configuration", key)
+			return
+		}
 	}
 
-	if ConfFile.Password == ""{
-		fmt.Sprintf("No password defined, Please check your configuration file \n")
-		os.Exit(1)
-	}
-
-	if ConfFile.Keyspace == ""{
-		fmt.Sprintf("No keyspace defined, Please check your configuration file \n")
-		os.Exit(1)
-	}
-
-	if ConfFile.AppJSONPath == ""{
-		fmt.Sprintf("No Application Json Output file path defined, Please check your configuration file\n")
-		os.Exit(1)
-	}
-
-	if ConfFile.AvroSchemaPath == ""{
-		fmt.Sprintf("No Avro Schema Output file path defined, Please check your configuration file\n")
-		os.Exit(1)
-	}
-
-	if ConfFile.CassQueryPath == ""{
-		fmt.Sprintf("No Cassandra Query Output file path defined, Please check your configuration file\n")
-		os.Exit(1)
-	}
-
-	if ConfFile.HiveSchemaPath == ""{
-		fmt.Sprintf("No Hive Schema Output file defined, Please check your configuration\n")
-	}
+	return
 }

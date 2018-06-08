@@ -9,7 +9,6 @@ import (
 	"strings"
 	"github.com/iancoleman/strcase"
 	dbm "github.com/dminGod/D30-HectorDA/cass_strategy/cass_schema_mapper"
-	"github.com/Unotechsoftware/HectorTools/config"
 )
 
 

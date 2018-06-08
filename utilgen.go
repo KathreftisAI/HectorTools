@@ -18,10 +18,13 @@ func main()  {
 
 	config.LoadConfiguration()
 
-	config.CheckConfiguration()
+	err := config.CheckConfiguration()
 
+	if err != nil{
+		fmt.Printf("Error in the configuration check ",err.Error())
+	}
 
-	err := dbm.StartSchemaMapper(dbm.CassandraConfig{
+	err = dbm.StartSchemaMapper(dbm.CassandraConfig{
 		Keyspace: config.ConfFile.Keyspace,
 		Username: config.ConfFile.Username,
 		Password: config.ConfFile.Password,
